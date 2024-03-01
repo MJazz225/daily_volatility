@@ -1,0 +1,73 @@
+#########################################################################
+#
+# made by Marshaw
+#
+# excel的起始日期是1899-12-30
+#
+# 最新更新：26/12/2023
+# messsari 爬虫， https://messari.io/assets
+#
+#######################################################################
+
+rm(list=ls())
+
+library(readxl)
+library(dplyr)
+library(openxlsx)
+library(tidyr)
+library(rvest)
+
+# 基础 URL
+base_url <- "https://messari.io/assets"
+
+# 用read_html()函数获取网页内容
+page <- read_html(base_url)
+
+# 使用xpath来选择目标元素，并用html_text()函数提取文本内容
+target_element <- page %>% html_node(xpath = '//*[@id="page-layout-body"]/div[1]/div[4]/div/div[2]/div[2]/div[3]/div/div[1]/table/thead/tr')
+text_content <- html_text(target_element)
+
+# 输出提取的内容
+cat(text_content)
+
+
+
+#######################################################################。用API的方式导入 #######################################################################
+# 导入httr和jsonlite包
+library(httr)
+library(jsonlite)
+
+# 设置API URL和API密钥
+url <- "https://api.messari.io/marketdata/v1/markets"
+api_key <- "0N9G2+N2HD+VkrO47-Zr4wNQ62uc2Bl0xFAW3ImD3M040I8N"
+
+queryString <- list(
+  exchangeId = "d8b0ea44-1963-451e-ac37-aead4ba3b4c7", #Binance
+  quoteAssetId = "51f8ea5e-f426-4f40-939a-db7e05495374" #USDT
+)
+
+# 发送GET请求并添加API密钥的头部
+response <- VERB("GET", url, query = queryString, add_headers('x-messari-api-key' = '0N9G2+N2HD+VkrO47-Zr4wNQ62uc2Bl0xFAW3ImD3M040I8N'),
+                 content_type("application/octet-stream"), accept("application/json"))
+
+# 解析JSON响应
+data <- content(response, "text", encoding = "UTF-8")
+parsed_data <- fromJSON(data)
+
+# 将JSON数据转换成数据框
+df <- as.data.frame(parsed_data$data)
+
+library(coinmarketcapr)
+head(get_crypto_listings())
+all_coins <- get_marketcap_ticker_all()
+
+
+
+
+
+
+
+
+
+
+
