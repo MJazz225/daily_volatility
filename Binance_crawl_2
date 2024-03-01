@@ -1,0 +1,111 @@
+#########################################################################
+#
+# made by Marshaw
+#
+# excel的起始日期是1899-12-30
+#
+# 最新更新：26/12/2023
+# binance：市值
+#
+#######################################################################
+
+rm(list=ls())
+
+library(readxl)
+library(dplyr)
+library(openxlsx)
+library(tidyr)
+library(rvest)
+
+# 基础 URL
+base_url <- "https://www.binance.com/zh-TC/markets/overview?p="
+session <- html_session("https://www.binance.com/zh-TC/markets/overview?p=1")
+
+# 存储所有页面内容的列表
+page_contents <- list()
+data1 <- NULL
+fulldata <- NULL
+# 遍历每一页，爬取内容
+for (page in 1:13) {  # 假设总共有13页
+  cat(page,'/','13','\n')
+  # 构建当前页的完整 URL
+  url <- paste0(base_url, page)
+  session <- session_follow_link(session, css = ".css-3kwgah", verbose = TRUE)
+  
+  # 尝试读取当前页的内容
+  tryCatch({
+    # 读取当前页的内容
+    page_html <- read_html(url)
+    print(url)
+    # 将当前页的内容存储到列表中
+    # 使用XPath选择器提取币种数据
+    #coin_data <- page_html %>% html_nodes(xpath = '//*[@id="tabContainer"]/div[2]/div[3]') %>% html_table()
+    
+    # 使用CSS选择器找到具有特定类的元素
+    target_elements <- page_html %>% html_nodes(".css-1pysja1")
+    
+    #colnames
+    menu_elements <- html_nodes(page_html, ".whitespace-nowrap.text-t-third")
+    menu <- html_text(menu_elements) #colnames
+    menu <- menu[c(1,2,4,5)]
+    
+    #first col, name
+    coin_elements <- html_nodes(page_html, ".subtitle3.text-t-primary.css-vurnku")
+    crypto <- html_text(coin_elements) %>% as.data.frame()
+    #2nd col, price
+    price_elements <- html_nodes(page_html, ".body2.items-center.css-18yakpx")
+    price <- html_text(price_elements) %>% as.data.frame()
+    #3nd col, 波动
+    risk_elements <- html_nodes(page_html, ".body2.css-18jvuxg")
+    risk <- html_text(risk_elements) %>% as.data.frame()
+    #4 & 5 col, volume & market cap
+    volume_marketcap_elements <- html_nodes(page_html, ".body2.text-t-primary.css-18yakpx")
+    volume_marketcap <- html_text(volume_marketcap_elements) %>% as.data.frame()
+    # 获取单数行和双数行的索引
+    odd_rows <- seq(1, nrow(volume_marketcap), by = 2) # 单数行的索引
+    even_rows <- seq(2, nrow(volume_marketcap), by = 2) # 双数行的索引
+    # 创建左边栏位和右边栏位的数据框
+    left_column <- volume_marketcap[odd_rows,] %>% as.data.frame()
+    right_column <- volume_marketcap[even_rows,] %>% as.data.frame()
+    # 将左边栏位和右边栏位组合在一起
+    new_dataframe <- cbind(left_column, right_column)
+    data1 <- cbind(crypto, price, new_dataframe)
+    colnames(data1) <- menu
+    fulldata <- rbind(data1, fulldata)
+    rm(data1)
+    data1 <- NULL
+  }, error = function(e) {
+    # 发生错误时打印错误信息
+    cat("Error on page", page, ":", conditionMessage(e), "\n")
+  })
+  Sys.sleep(8)
+  
+}
+
+# 打印结果
+print(fulldata)
+
+
+
+
+
+
+
+
+# 选择需要的列，并将市值转换为数值类型
+coin_data <- coin_data[[1]]  # 选择第一个表格
+coin_data <- coin_data[, c("币种", "市值")]  # 选择币种和市值列
+coin_data$市值 <- as.numeric(gsub(",", "", coin_data$市值))  # 移除千位分隔符并转换为数值类型
+
+# 按市值对数据框排序
+coin_data <- coin_data[order(coin_data$市值, decreasing = TRUE), ]
+
+# 打印排序后的结果
+print(coin_data)
+
+
+
+
+
+
+
