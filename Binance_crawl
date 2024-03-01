@@ -1,0 +1,34 @@
+#########################################################################
+#
+# made by Marshaw
+#
+# excel的起始日期是1899-12-30
+#
+# 最新更新：26/12/2023
+# 举报异常资金处理
+#
+#######################################################################
+
+rm(list=ls())
+
+library(readxl)
+library(dplyr)
+library(openxlsx)
+library(tidyr)
+
+# 安装和加载需要的库
+install.packages("rvest")
+library(rvest)
+
+# 指定目标网页的URL
+url <- "https://www.binance.com/zh-TC/markets/overview"
+
+# 用read_html()函数获取网页内容
+page <- read_html(url)
+
+# 使用xpath来选择目标元素，并用html_text()函数提取文本内容
+target_element <- page %>% html_node(xpath = '//*[@id="tabContainer"]/div[2]')
+text_content <- html_text(target_element)
+
+# 输出提取的内容
+cat(text_content)
